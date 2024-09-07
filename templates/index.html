@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donation System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Web3.js -->
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.6.0/dist/web3.min.js"></script>
+    <style>
+        /* Background styling */
+        body {
+            background-image: url("{{ url_for('static', filename='assets/background.webp') }}");
+            background-size: cover;
+            background-position: center;
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 40px;
+            border-radius: 15px;
+        }
+        h1, h3, h5 {
+            color: #FFD700;
+        }
+        .btn-primary, .btn-success, .btn-danger, .btn-warning {
+            border-radius: 50px;
+            padding: 10px 30px;
+            font-weight: bold;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 15px;
+            color: white;
+        }
+        input, textarea {
+            background: rgba(255, 255, 255, 0.8);
+            color: black;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        /* Hover effect for buttons */
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        /* Enhance footer text */
+        .text-muted {
+            color: #cccccc !important;
+        }
+        .list-group-item {
+            background-color: rgba(255, 255, 255, 0.83); /* Light semi-transparent background */
+            border-radius: 10px; /* Rounded corners for the box */
+            border: none; /* Remove border for cleaner look */
+            padding: 20px; /* Add some padding for box feel */
+            margin-bottom: 15px; /* Space between boxes */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add box shadow for depth */
+            transition: transform 0.3s ease; /* Smooth hover effect */
+            word-wrap: break-word; /* Ensure long words break and don't overflow */
+        }
+
+        .list-group-item:hover {
+            transform: scale(1.05); /* Slight zoom effect on hover */
+            background-color: rgb(255, 255, 255); /* Slightly lighter on hover */
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Donation System</h1>
+
+        <!-- Connect Wallet Section -->
+        <div id="walletSection" class="text-center mt-4">
+            <button id="connectWalletButton" class="btn btn-primary">Connect Wallet</button>
+            <button id="disconnectWalletButton" class="btn btn-danger" style="display:none;">Disconnect Wallet</button>
+            <p id="walletStatus" class="mt-2 text-muted">Not connected</p>
+        </div>
+
+        <!-- Show connected wallet address -->
+        <div id="walletAddressSection" style="display:none;" class="mt-4 text-center">
+            <h5>Connected Wallet Address:</h5>
+            <p id="walletAddress" class="text-muted"></p>
+        </div>
+
+        <!-- Become a DAO Member -->
+        <div id="daoSection" style="display:none;" class="text-center mt-4">
+            <h5>Want to become a DAO member?</h5>
+            <button id="becomeDAOButton" class="btn btn-warning">Become DAO (0.0001 ETH)</button>
+        </div>
+
+        <!-- Donation Summary Section -->
+        <div id="donationSection" style="display:none;" class="mt-5">
+            <h3>Donation Summary</h3>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Donation</h5>
+                            <p class="card-text"><span id="totalDonation">Loading...</span> ETH</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Current Balance</h5>
+                            <p class="card-text"><span id="currentBalance">Loading...</span> ETH</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Fund Released</h5>
+                            <p class="card-text"><span id="totalReleased">Loading...</span> ETH</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Donation Section -->
+            <h3 class="mt-5">Make a Donation</h3>
+            <form id="donationForm">
+                <div class="input-group mb-3">
+                    <input type="text" id="donationAmount" class="form-control" placeholder="Enter donation amount in ETH" required>
+                    <button class="btn btn-success" type="submit">Donate</button>
+                </div>
+            </form>
+
+            <!-- Request New Fund Release Section -->
+            <h3 class="mt-5">Request New Fund Release</h3>
+            <form id="fundRequestForm">
+                <div class="mb-3">
+                    <label for="fundReason" class="form-label">Reason for Fund Release</label>
+                    <input type="text" id="fundReason" class="form-control" placeholder="Enter the reason for fund release" required>
+                </div>
+                <div class="mb-3">
+                    <label for="fundAmount" class="form-label">Amount (in ETH)</label>
+                    <input type="number" id="fundAmount" class="form-control" placeholder="Enter amount in ETH" required>
+                </div>
+                <button class="btn btn-primary" type="submit">Request Fund Release</button>
+            </form>
+
+            <!-- Fund Requests Section -->
+            <h3 class="mt-5">Fund Requests</h3>
+            <div id="fundList" class="list-group">Loading fund requests...</div>
+        </div>
+
+        <!-- Error Message Section -->
+        <div id="errorMessage" class="alert alert-danger mt-4" style="display: none;"></div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
